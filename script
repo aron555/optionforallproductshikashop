@@ -1,0 +1,66 @@
+$product_related_id = "2120";
+
+//Создаем опцию для каждого товара
+$db = JFactory::getDBO();
+
+$query = $db->getQuery(true);
+$query->select('#__hikashop_product.product_id')
+    ->from($db->quoteName('#__hikashop_product'))
+    ->where($db->quoteName('product_type') . ' = ' . $db->quote('main'));
+
+
+$db->setQuery($query);
+$main_pr = $db->loadObjectList();
+$query->clear();
+
+$count_update = "0";
+$count_exists = "0";
+
+
+foreach ($main_pr as $key => $item) {
+
+    $db = JFactory::getDBO();
+    $query = $db->getQuery(true);
+
+    $query->select(array('#__hikashop_product_related.product_id'))
+        ->from($db->quoteName('#__hikashop_product_related'))
+        ->where($db->quoteName('product_related_type') . ' = ' . $db->quote('options'))
+        ->where($db->quoteName('product_related_id') . ' = ' .  $db->quote($product_related_id))
+        ->where($db->quoteName('product_id') . ' = ' . $db->quote($item->product_id));
+
+
+    $db->setQuery($query);
+    $db->execute();
+    $count_is = $db->getNumRows();
+    $query->clear();
+
+    if($count_is == "0") {
+
+        // Insert columns.
+        $columns = array('product_related_id', 'product_related_type', 'product_related_quantity', 'product_id');
+
+        // Insert values.
+        $values = array( $db->quote($product_related_id), $db->quote('options'), $db->quote('0'), $db->quote($item->product_id));
+
+
+        $query
+            ->insert($db->quoteName('#__hikashop_product_related'))
+            ->columns($db->quoteName($columns))
+            ->values(implode(',', $values));
+
+        $db->setQuery($query);
+        if ($db->execute()) {
+            $count_update++;
+        } else {
+            echo "error - ".$item->product_id;
+        }
+        $query->clear();
+
+    } else {
+        $count_exists++;
+    }
+    
+}
+echo "Update - ".$count_update."<br>";
+echo "Exists - ".$count_exists."<br>";
+exit();
